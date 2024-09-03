@@ -16,8 +16,8 @@ export class FileStorage {
             console.log({ error });
             return;
           }
-          this.object = JSON.parse(data);
-          console.log({ data: this.object });
+          this.object = data ? JSON.parse(data) : null;
+          console.log({ data: this.object }, "fs starter");
         });
       } else if (err.code === "ENOENT") {
         // file does not exist
@@ -43,17 +43,38 @@ export class FileStorage {
   all() {
     return this.object;
   }
+
   save(value) {
     fs.writeFile(this.fileName, JSON.stringify(this.object), (err) => {
       if (err) throw new Error(err.message);
       return value;
     });
   }
-  update() {}
+
+  update(name, id, value) {
+    const obj = this.object;
+    if (!obj[name]) {
+      throw new Error("Invalid data object");
+    }
+
+    const index = obj[name].findIndex((item) => item.id === parseInt(id));
+    if (index === -1) {
+      return null;
+    }
+
+    obj[name][index] = { ...obj[name][index], ...value };
+    this.object = obj;
+
+    const updatedItem = obj[name][index];
+    this.save(updatedItem);
+    return updatedItem;
+  }
 
   new(name, value) {
+    // this.object refers to the object from stater
     const obj = this.object;
-    console.log({ name, obj });
+    // name refers to the name of the object we hope to manipulate in this case(blog)
+    // value refers to the content of our post request
     if (obj[name]) {
       obj[name].push(value);
     } else {
@@ -63,5 +84,21 @@ export class FileStorage {
     const res = this.save(value);
     return res;
   }
-  delete() {}
+  delete(name, id) {
+    const obj = this.object;
+    if (!obj[name]) {
+      throw new Error("Invalid data object");
+    }
+
+    const index = obj[name].findIndex((item) => item.id === parseInt(id));
+    if (index === -1) {
+      return null;
+    }
+
+    const deletedItem = obj[name].splice(index, 1)[0];
+    this.object = obj;
+
+    this.save(deletedItem);
+    return deletedItem;
+  }
 }
